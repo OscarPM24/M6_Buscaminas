@@ -1,5 +1,6 @@
 let x = 0;
 let y = 0;
+let acabado = false;
 
 function iniciarPartida() {
     x = parseInt(prompt("Número de filas (entre 10 y 30)"));
@@ -17,6 +18,8 @@ function iniciarPartida() {
 
     //Cálculo de minas adyacentes
     calculaAdjacents();
+
+    acabado = false;
 }
 
 /* Función que comprueba si el número de filas/columnas
@@ -45,78 +48,106 @@ function crearTaulell() {
     divTaulell.innerHTML = taulell;
 }
 
+/* Función que recibe unas coordenadas y muestra
+   el número de minas adyacentes en esa posición.
+   Si es mina, muestra una imagen de una mina y se acaba el juego */
 function obreCasella(i, j) {
-    let casella = document.getElementById(`${i}_${j}`);
+    if (acabado) return;
+    let casilla = getCasilla(i, j);
     if (esMina(i,j)) {
+        acabado = true;
         mostrarMines();
+        alert("Has perdido! 💀");
+        return;
     } else {
-        if (casella.getAttribute("data-num-mines") == "0") {
+        if (casilla.getAttribute("data-num-mines") == "0") {
             mostrarCasellesZero(i, j);
         }
-        casella.innerHTML = casella.getAttribute("data-num-mines");
+        casilla.innerHTML = casilla.getAttribute("data-num-mines");
+        if (checkVictoria()) {
+            acabado = true;
+            mostrarMines();
+            alert("Has ganado! 🤑");
+
+        }
     }
 }
+
+// Getter de casilla
+function getCasilla(i, j) {
+    return document.getElementById(`${i}_${j}`);
+}
+
 
 /* Función que recorre el tablero del buscaminas
    y pone una mina en una casilla con un 17% de probabilidades */
 function setMines() {
-    for (let i = 1; i <= x; i++) {
-        for (let j = 1; j <= y; j++) {
-            let casella = document.getElementById(`${i}_${j}`);
-            let rand = Math.random(); 
-            if (rand <= 0.17) {
-                casella.setAttribute("data-mina", "true");
-            }
-        }
+    let num_mines = Math.round((x * y) * 0.17);
+    while (num_mines > 0) {
+        let i = Math.floor(Math.random() * x) + 1;
+        let j = Math.floor(Math.random() * y) + 1;
+        let casilla = getCasilla(i, j);
+        if (casilla == null || esMina(i, j)) continue;
+        casilla.setAttribute("data-mina", "true");
+        num_mines--;
     }
 }
 
+/* Función que recorre el tablero del buscaminas
+   y en cada casilla almacena el número de minas adyacentes
+   en un atributo 'data-mina' */
 function calculaAdjacents() {
     // Bucles for para recorrer el tablero
     for (let i = 1; i <= x; i++) {
         for (let j = 1; j <= y; j++) {
-            let casella = document.getElementById(`${i}_${j}`);
+            let casilla = getCasilla(i, j);
             let adjacents = 0;
             // Bucles for para recorrer las casillas adyacentes
             for (let k = i-1; k <= i+1; k++) {
                 for (let l = j-1; l <= j+1; l++) {
-                    let casellaAdjacent = document.getElementById(`${k}_${l}`);
+                    let casellaAdjacent = getCasilla(k, l);
                     if (casellaAdjacent == null) continue;
                     if (casellaAdjacent.getAttribute("data-mina") == "true") {
                         adjacents++;
                     }
                 }
             }
-            casella.setAttribute("data-num-mines", adjacents);
+            casilla.setAttribute("data-num-mines", adjacents);
         }
     }
 }
 
+/* Función que recibe las coordenadas
+   y comprueba si la casilla de esa posición es una mina */
 function esMina(i, j) {
-    let casella = document.getElementById(`${i}_${j}`);
-    if (casella.getAttribute("data-mina") == "true") { return true; }
+    let casilla = getCasilla(i, j);
+    if (casilla.getAttribute("data-mina") == "true") { return true; }
     return false;
 }
 
+/* Función que muestra todas las minas del tablero */
 function mostrarMines() {
     for (let i = 1; i <= x; i++) {
         for (let j = 1; j <= y; j++) {
             if (esMina(i,j)) {
-                let casella = document.getElementById(`${i}_${j}`).innerHTML = "<img src= img_pescamines/mina20px.jpg>";
+                getCasilla(i, j).innerHTML = "<img src= img_pescamines/mina20px.jpg>";
             }
         }
     }
 }
 
+/* Función que recibe las coordenadas de una casilla con 0 minas adyacentes
+   y muestra todas las casillas adyacentes a esta.
+   Si una de estas casillas tiene 0 minas adyacentes, hará lo mismo de forma recursiva */
 function mostrarCasellesZero(i, j) {
     // Bucles for para recorrer las casillas adyacentes
     for (let k = i-1; k <= i+1; k++) {
         for (let l = j-1; l <= j+1; l++) {
-            let casella = document.getElementById(`${k}_${l}`);
-            if (casella != null) {
-                let num_mines = casella.getAttribute("data-num-mines");
-                if (casella.innerHTML != num_mines) {
-                    casella.innerHTML = num_mines;
+            let casilla = getCasilla(k, l);
+            if (casilla != null) {
+                let num_mines = casilla.getAttribute("data-num-mines");
+                if (casilla.innerHTML != num_mines) {
+                    casilla.innerHTML = num_mines;
                     if (num_mines == 0) mostrarCasellesZero(k, l); 
                 }
             }
@@ -124,8 +155,17 @@ function mostrarCasellesZero(i, j) {
     }
 }
 
-// if (casella != null && casella.getAttribute("data-num-mines") == "0" && casella.innerHTML != casella.getAttribute("data-num-mines")) {
-//     casella.innerHTML = casella.getAttribute("data-num-mines");
-//     mostrarCasellesZero(i,j);
-    
-// }
+/* Función que comprueba si todas las casillas que no sean minas
+   están descubiertas */
+function checkVictoria() {
+    // Bucles for para recorrer el tablero
+    for (let i = 1; i <= x; i++) {
+        for (let j = 1; j <= y; j++) {
+            let casilla = getCasilla(i, j);
+            let num_mines = casilla.getAttribute("data-num-mines");
+            if (esMina(i, j)) continue;
+            if (casilla.innerHTML != num_mines) return false;
+        }
+    }
+    return true;
+}
