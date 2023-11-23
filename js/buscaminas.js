@@ -1,7 +1,9 @@
-let x = 0;
-let y = 0;
-let acabado = false;
+let x = 0; // Filas del tablero
+let y = 0; // Columnas del tablero
+let acabado = false; // Se pone true cuando el jugador gana/pierde
 
+/* Función que pide 2 números por prompt (filas, columnas)
+   y crea el tablero, las minas y el cálculo de minas adyacentes */
 function iniciarPartida() {
     x = parseInt(prompt("Número de filas (entre 10 y 30)"));
     y = parseInt(prompt("Número de columnas (entre 10 y 30"));
@@ -39,7 +41,7 @@ function crearTaulell() {
         taulell += "<tr>"
         for (let j = 1; j <= y; j++) {
             taulell += `<td id="${i}_${j}" data-mina="false">`;
-            taulell += `<img src="img_pescamines/fons20px.jpg" onclick="obreCasella(${i}, ${j})">`;
+            taulell += `<img src="img_pescamines/fons20px.jpg" onclick="obreCasella(${i}, ${j})" oncontextmenu="setBandera(${i}, ${j})">`;
             taulell += "</td>";
         }
         taulell += "</tr>";
@@ -54,40 +56,37 @@ function crearTaulell() {
 function obreCasella(i, j) {
     if (acabado) return;
     let casilla = getCasilla(i, j);
-    if (esMina(i,j)) {
+    if (esMina(casilla)) {
         acabado = true;
         mostrarMines();
         alert("Has perdido! 💀");
-        return;
+        return; // Acaba la partida
     } else {
-        if (casilla.getAttribute("data-num-mines") == "0") {
-            mostrarCasellesZero(i, j);
-        }
+        if (casilla.getAttribute("data-num-mines") == "0") mostrarCasellesZero(i, j);
         casilla.innerHTML = casilla.getAttribute("data-num-mines");
         if (checkVictoria()) {
             acabado = true;
             mostrarMines();
             alert("Has ganado! 🤑");
-
+            return; // Acaba la partida
         }
     }
 }
 
-// Getter de casilla
+/* Getter de casilla */
 function getCasilla(i, j) {
     return document.getElementById(`${i}_${j}`);
 }
 
-
 /* Función que recorre el tablero del buscaminas
    y pone una mina en una casilla con un 17% de probabilidades */
 function setMines() {
-    let num_mines = Math.round((x * y) * 0.17);
+    let num_mines = Math.round((x * y) * 0.17); // número de minas = 17%(filas * columnas)
     while (num_mines > 0) {
-        let i = Math.floor(Math.random() * x) + 1;
-        let j = Math.floor(Math.random() * y) + 1;
+        let i = Math.floor(Math.random() * x) + 1; // Coordenada x aleatoria
+        let j = Math.floor(Math.random() * y) + 1; // Coordenada y aleatoria
         let casilla = getCasilla(i, j);
-        if (casilla == null || esMina(i, j)) continue;
+        if (casilla == null || esMina(casilla)) continue;
         casilla.setAttribute("data-mina", "true");
         num_mines--;
     }
@@ -107,9 +106,7 @@ function calculaAdjacents() {
                 for (let l = j-1; l <= j+1; l++) {
                     let casellaAdjacent = getCasilla(k, l);
                     if (casellaAdjacent == null) continue;
-                    if (casellaAdjacent.getAttribute("data-mina") == "true") {
-                        adjacents++;
-                    }
+                    if (casellaAdjacent.getAttribute("data-mina") == "true") adjacents++;
                 }
             }
             casilla.setAttribute("data-num-mines", adjacents);
@@ -119,9 +116,8 @@ function calculaAdjacents() {
 
 /* Función que recibe las coordenadas
    y comprueba si la casilla de esa posición es una mina */
-function esMina(i, j) {
-    let casilla = getCasilla(i, j);
-    if (casilla.getAttribute("data-mina") == "true") { return true; }
+function esMina(casilla) {
+    if (casilla.getAttribute("data-mina") == "true") return true;
     return false;
 }
 
@@ -129,9 +125,8 @@ function esMina(i, j) {
 function mostrarMines() {
     for (let i = 1; i <= x; i++) {
         for (let j = 1; j <= y; j++) {
-            if (esMina(i,j)) {
-                getCasilla(i, j).innerHTML = "<img src= img_pescamines/mina20px.jpg>";
-            }
+            let casilla = getCasilla(i, j);
+            if (esMina(casilla)) casilla.innerHTML = "<img src= img_pescamines/mina20px.jpg>";
         }
     }
 }
@@ -155,6 +150,22 @@ function mostrarCasellesZero(i, j) {
     }
 }
 
+/* Función que reciba las coordenadas
+   y pone una bandera en esa casilla */
+function setBandera(i, j) {
+    if (acabado) return;
+    let casilla = getCasilla(i, j);
+    casilla.innerHTML = `<img src="img_pescamines/bandera20px.jpg" onclick="unsetBandera(${i}, ${j})">`;
+}
+
+/* Función que reciba las coordenadas
+   y elimina la bandera de la casilla */
+function unsetBandera(i, j) {
+    if (acabado) return;
+    let casilla = getCasilla(i, j);
+    casilla.innerHTML = `<img src="img_pescamines/fons20px.jpg" onclick="obreCasella(${i}, ${j})" oncontextmenu="setBandera(${i}, ${j})">`
+}
+
 /* Función que comprueba si todas las casillas que no sean minas
    están descubiertas */
 function checkVictoria() {
@@ -163,7 +174,7 @@ function checkVictoria() {
         for (let j = 1; j <= y; j++) {
             let casilla = getCasilla(i, j);
             let num_mines = casilla.getAttribute("data-num-mines");
-            if (esMina(i, j)) continue;
+            if (esMina(casilla)) continue;
             if (casilla.innerHTML != num_mines) return false;
         }
     }
